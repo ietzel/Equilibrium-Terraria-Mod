@@ -62,6 +62,172 @@ namespace Equilibrium
 
         // --- Applying the Stat Modifications ---
 
+        // Called at the start of every frame to reset stats. This is the best place to modify max minions.
+        public override void ResetEffects()
+        {
+            int em = EquilibriumModifier;
+            if (em > 0)
+            {
+                // --- NEW: Max Minion Increase ---
+                // Increase max minions by 1 for every 10 points of the modifier.
+                int minionBonus = (int)Math.Floor(em / 10.0);
+                Player.maxMinions += minionBonus;
+            }
+        }
+
+        // Called every frame to apply our custom stats from the Equilibrium Modifier.
+        public override void PostUpdate()
+        {
+            int em = EquilibriumModifier;
+            if (em == 0) return;
+
+            // --- Unified Stat Calculations ---
+            float damageMultiplier = em > 0 ? 0.015f : 0.02f;
+            Player.GetDamage(DamageClass.Generic) += damageMultiplier * em;
+
+            Player.GetCritChance(DamageClass.Generic) += 0.5f * Math.Max(0, em);
+            Player.moveSpeed += 0.01f * Math.Max(0, em);
+            Player.endurance += 0.01f * Math.Max(0, -em);
+
+            float healthReductionPercent = 0.01f * Math.Max(0, -em);
+            float cappedHealthReduction = Math.Min(0.25f, healthReductionPercent);
+            Player.statLifeMax2 -= (int)(Player.statLifeMax * cappedHealthReduction);
+        }
+
+        // This hook modifies buff times for the Potion Sickness penalty.
+        public override void ModifyBuffTime(int type, ref int time)
+        {
+            int em = EquilibriumModifier;
+            if (type == BuffID.PotionSickness && em < 0)
+            {
+                float durationIncrease = 0.03f * -em;
+                time += (int)(time * durationIncrease);
+            }
+        }
+
+        // --- NEW: Shop Discount Logic ---
+        // This hook is called when a shop is opened to determine prices.
+        public override void ModifyShoppingSettings(ShoppingSettings shopSettings)
+        {
+            int em = EquilibriumModifier;
+            if (em > 0)
+            {
+                // Provides a 1% discount per point of the modifier.
+                float discount = 0.01f * em;
+
+                // Cap the discount at 99% to prevent items from becoming free.
+                if (discount > 0.99f)
+                {
+                    discount = 0.99f;
+                }
+                
+                // Lowering the PriceAdjustment reduces the final cost.
+                shopSettings.PriceAdjustment -= discount;
+            }
+        }
+    }
+    
+    // An item for players to check their stats.
+    public class KarmicLedger : ModItem
+    {
+        public override void SetDefaults()
+        {
+            Item.width = 28;
+            Item.height = 32;
+            Item.useTime = 30;
+            Item.useAnimation = 30;
+            Item.useStyle = ItemUseStyleID.HoldUp;
+            Item.value = Item.sellPrice(silver: 10);
+            Item.rare = ItemRarityID.Blue;
+            Item.autoReuse = false;
+        }
+
+        // This is what happens when the player uses the item.
+        public override bool? UseItem(Player player)
+        {
+            if (player.whoAmI == Main.myPlayer)
+            {
+                var modPlayer = player.GetModPlayer<EquilibriumPlayer>();
+                int em = modPlayer.EquilibriumModifier;
+                int difference = modPlayer.totalKills - modPlayer.totalDeaths;
+
+                Color messageColor = em > 0 ? Color.LawnGreen : (em < 0 ? Color.IndianRed : Color.White);
+
+                Main.NewText("--- Equilibrium Status ---", Color.Gold);
+                Main.NewText($"Total Kills: {modPlayer.totalKills}", Color.LightGreen);
+                Main.NewText($"Total Deaths: {modPlayer.totalDeaths}", Color.LightCoral);
+                Main.NewText($"Kill/Death Differential: {difference}", Color.Cyan);
+                Main.NewText($"Equilibrium Modifier (EM): {em}", messageColor);
+
+                // Display the calculated stat changes.
+                if (em > 0)
+                {
+                    // --- UPDATED to show new stats ---
+                    int minionBonus = (int)Math.Floor(em / 10.0);
+                    float discount = Math.Min(99f, 1f * em);
+
+                    Main.NewText($"Damage Bonus: +{1.5f * em:F1}%", messageColor);
+                    Main.NewText($"Crit Chance Bonus: +{0.5f * em:F1}%", messageColor);
+                    Main.NewText($"Movement Speed Bonus: +{1f * em:F1}%", messageColor);
+                    Main.NewText($"Bonus Max Minions: +{minionBonus}", messageColor);
+                    Main.NewText($"Shop Discount: {discount:F0}%", messageColor);
+                }
+                else if (em < 0)
+                {
+                    int absEm = -em;
+                    Main.NewText($"Damage Penalty: -{2f * absEm:F1}%", messageColor);
+                    Main.NewText($"Damage Reduction: +{1f * absEm:F1}%", messageColor);
+                    Main.NewText($"Max Health Penalty: -{Math.Min(25f, 1f * absEm):F1}%", messageColor);
+                    Main.NewText($"Potion Sickness Duration: +{3f * absEm:F1}%", messageColor);
+                }
+                else
+                {
+                    Main.NewText("Your stats are in balance.", messageColor);
+                }
+            }
+            return true;
+        }
+
+        // The recipe to craft the Karmic Ledger.
+        public override void AddRecipes()
+        {
+            Recipe recipe = CreateRecipe();
+            recipe.AddIngredient(ItemID.Book, 1);
+            recipe.AddIngredient(ItemID.Bone, 15);
+            recipe.AddTile(TileID.WorkBenches);
+            recipe.Register();
+        }
+    }
+}
+
+        {
+            tag["totalKills"] = totalKills;
+            tag["totalDeaths"] = totalDeaths;
+        }
+
+        public override void LoadData(TagCompound tag)
+        {
+            totalKills = tag.GetInt("totalKills");
+            totalDeaths = tag.GetInt("totalDeaths");
+        }
+
+        // --- Event Hooks to Track Kills and Deaths ---
+        public override void OnKill(NPC npc)
+        {
+            // We add some conditions to prevent farming weak or non-hostile creatures.
+            if (!npc.townNPC && !npc.friendly && npc.lifeMax > 10 && npc.damage > 0)
+            {
+                totalKills++;
+            }
+        }
+
+        public override void Kill(double damage, int hitDirection, bool pvp, PlayerDeathReason damageSource)
+        {
+            totalDeaths++;
+        }
+
+        // --- Applying the Stat Modifications ---
+
         // This method is called every frame to apply our custom stats from the Equilibrium Modifier.
         public override void PostUpdate()
         {
