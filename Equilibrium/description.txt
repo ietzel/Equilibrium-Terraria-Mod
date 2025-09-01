@@ -1,0 +1,1 @@
+Adds difference between kills & deaths / 12 as modifier for all stats.
