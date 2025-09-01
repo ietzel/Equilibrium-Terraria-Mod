@@ -1,0 +1,3 @@
+displayName = Equilibrium
+author = iritzel
+version = 0.1
