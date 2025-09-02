@@ -38,13 +38,13 @@ namespace Equilibrium {
             int em = EquilibriumModifier;
             if (em > 0) {
                 Player.maxMinions += (int)Math.Floor(em / 10.0);
-                float lifeBonusPercent = Math.Min(0.25f, 0.005f * em);
+                float lifeBonusPercent = Math.Min(5.00f, 0.005f * em);
                 Player.statLifeMax2 += (int)(Player.statLifeMax * lifeBonusPercent);
                 float manaBonusPercent = Math.Min(0.50f, 0.01f * em);
                 Player.statManaMax2 += (int)(Player.statManaMax * manaBonusPercent);
-                Player.lifeRegen += (int)Math.Floor(em / 5.0);
-                Player.statDefense += (int)Math.Floor(em / 4.0);
-                Player.knockbackResist += Math.Min(0.50f, 0.01f * em);
+                Player.lifeRegen += (int)em;
+                Player.statDefense += (int)em;
+                Player.knockbackResist += Math.Min(0.75f, 0.01f * em);
             }
         }
         public override void PostUpdate() {
