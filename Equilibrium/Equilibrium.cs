@@ -82,6 +82,11 @@ namespace Equilibrium
                 Player.lifeRegen += (int)Math.Floor(em / 5.0);
                 Player.statDefense += (int)Math.Floor(em / 4.0);
                 Player.knockbackResist += Math.Min(0.50f, 0.01f * em);
+
+                // --- FIXED: Shop Discount Logic ---
+                // Player.discount is a float from 0 to 1 representing the discount percentage.
+                float discount = Math.Min(0.99f, 0.01f * em);
+                Player.discount += discount;
             }
         }
 
@@ -104,28 +109,6 @@ namespace Equilibrium
             Player.statLifeMax2 -= (int)(Player.statLifeMax * cappedHealthReduction);
         }
 
-        // --- FIXED METHOD SIGNATURE ---
-        // This hook modifies buff times for the Potion Sickness penalty.
-        public override void ModifyBuffTime(int buffType, ref int buffTime)
-        {
-            int em = EquilibriumModifier;
-            if (buffType == BuffID.PotionSickness && em < 0)
-            {
-                float durationIncrease = 0.03f * -em;
-                buffTime += (int)(buffTime * durationIncrease);
-            }
-        }
-
-        // --- Shop Discount Logic ---
-        public override void ModifyShoppingSettings(ShoppingSettings shopSettings)
-        {
-            int em = EquilibriumModifier;
-            if (em > 0)
-            {
-                float discount = Math.Min(0.99f, 0.01f * em);
-                shopSettings.PriceAdjustment -= discount;
-            }
-        }
     }
 
     // This GlobalNPC class is used to reliably detect when any NPC is killed.
