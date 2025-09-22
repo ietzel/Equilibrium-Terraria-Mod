@@ -1,1 +1,1 @@
-Good for Fargo's Souls & Mutants & Music, Calamity & Music, Improved Reforging, Terraria Overhaul, Quality of Terraria, Secrets of the Shadows, Consolaria, Apacchiis Classes Reborn, Gensokyo, Weapon Enchantments, Expanded Terraria.
+Good for Fargo's Souls & Mutants & Music, Calamity & Music, Improved Reforging, Terraria Overhaul, Quality of Terraria, Secrets of the Shadows, Consolaria, Apacchiis Classes Reborn, Gensokyo, Weapon Enchantments, Expanded Terraria, Mod of Redemption, Remnants.
